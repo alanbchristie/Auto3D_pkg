@@ -29,12 +29,12 @@ from tqdm import tqdm
 # logger = logging.getLogger("auto3d")
 class tautomer_engine(object):
     """Enemerate possible tautomers for the input_f
-    
+
     Arguments:
         mode: rdkit or oechem
         input_f: smi file
         output: smi file
-        
+
     """
     def __init__(self, mode, input_f, out, pKaNorm):
         self.mode = mode
@@ -56,20 +56,25 @@ class tautomer_engine(object):
         for mol in ifs.GetOEGraphMols():
             for tautomer in oequacpac.OEGetReasonableTautomers(mol, tautomerOptions, self.pKaNorm):
                 oechem.OEWriteMolecule(ofs, tautomer)
-        
+
         # Appending input_f smiles into output
         combine_smi([self.input_f, self.output], self.output)
 
     def rd_taut(self):
         """RDKit enumerating tautomers"""
         enumerator = rdMolStandardize.TautomerEnumerator()
+        print(f'Reading {self.input_f}...')
         smiles = []
         with open(self.input_f, 'r') as f:
             data = f.readlines()
             for line in data:
                 line = line.strip().split()
-                smi, idx = line[0], line[1]
-                smiles.append((smi, idx))
+                if len(line) >= 2:
+                    smi, idx = line[0], line[1]
+                    smiles.append((smi, idx))
+                else:
+                    print(f'Skipping line {line} in {self.input_f} (not enough fields)')
+        print(f'Read {self.input_f}')
         tautomers = []
         for smi_idx in smiles:
             smi, idx = smi_idx
@@ -135,10 +140,10 @@ class rd_isomer(object):
     @staticmethod
     def enumerate_func(mol):
         """Enumerate the R/S and cis/trans isomers
-        
+
         Argument:
             mol: rd mol object
-            
+
         Return:
             isomers: a list of SMILES"""
         opts = StereoEnumerationOptions(unique=True)
@@ -312,14 +317,14 @@ def oe_isomer(mode, input_f, smiles_enumerated, smiles_reduced, smiles_hashed, o
         omegaOpts = oeomega.OEMacrocycleOmegaOptions()
     else:
         raise ValueError(f"mode has to be 'classic' or 'macrocycle', but received {mode}.")
-    omegaOpts.SetParameterVisibility(oechem.OEParamVisibility_Hidden) 
+    omegaOpts.SetParameterVisibility(oechem.OEParamVisibility_Hidden)
     omegaOpts.SetParameterVisibility("-rms", oechem.OEParamVisibility_Simple)
     omegaOpts.SetParameterVisibility("-ewindow", oechem.OEParamVisibility_Simple)
     omegaOpts.SetParameterVisibility("-maxconfs", oechem.OEParamVisibility_Simple)
 
     if mode == 'macrocycle':
         omegaOpts.SetIterCycleSize(1000)
-        omegaOpts.SetMaxIter(2000)   
+        omegaOpts.SetMaxIter(2000)
         omegaOpts.SetMaxConfs(max_confs)
         omegaOpts.SetEnergyWindow(999)
     else:
@@ -327,10 +332,10 @@ def oe_isomer(mode, input_f, smiles_enumerated, smiles_reduced, smiles_hashed, o
         omegaOpts.SetStrictStereo(False)
         omegaOpts.SetWarts(True)
         omegaOpts.SetMaxConfs(max_confs)
-        omegaOpts.SetEnergyWindow(999)   
-        omegaOpts.SetRMSRange("0.8, 1.0, 1.2, 1.4")             
+        omegaOpts.SetEnergyWindow(999)
+        omegaOpts.SetRMSRange("0.8, 1.0, 1.2, 1.4")
     # dense, pose, rocs, fast_rocs mdoes use the default parameters from OEOMEGA:
-    # https://docs.eyesopen.com/toolkits/python/omegatk/OEConfGenConstants/OEOmegaSampling.html 
+    # https://docs.eyesopen.com/toolkits/python/omegatk/OEConfGenConstants/OEOmegaSampling.html
     opts = oechem.OESimpleAppOptions(omegaOpts, "Omega", oechem.OEFileStringType_Mol, oechem.OEFileStringType_Mol3D)
 
     omegaOpts.UpdateValues(opts)
@@ -352,7 +357,7 @@ def oe_isomer(mode, input_f, smiles_enumerated, smiles_reduced, smiles_hashed, o
             ifs.open(input_f)
     elif input_format == "sdf":
             ifs = oechem.oemolistream()
-            ifs.open(input_f)        
+            ifs.open(input_f)
     ofs = oechem.oemolostream()
     ofs.open(output)
 
