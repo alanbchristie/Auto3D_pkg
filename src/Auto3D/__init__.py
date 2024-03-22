@@ -4,7 +4,7 @@ from pkg_resources import get_distribution, DistributionNotFound
 try:
     __version__ = get_distribution(__name__).version
 except DistributionNotFound:
-    pass
+    __version__ = "0.0.0"
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
